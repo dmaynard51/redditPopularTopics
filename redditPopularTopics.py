@@ -23,7 +23,7 @@ def main():
     reddit = praw.Reddit(client_id=client_id, client_secret=client_secret, user_agent=user_agent)
 
     # Define the subreddit you want to scrape
-    subreddit_name = "csMajors"
+    subreddit_name = "cscareerquestions"
     subreddit = reddit.subreddit(subreddit_name)
 
 
@@ -61,6 +61,15 @@ def main():
                 result.append(token)
         return result
 
+    def generate_topic_names(lda_model, num_topics):
+        topic_names = []
+        for i in range(num_topics):
+            topic_terms = lda_model.show_topic(i, topn=2)  # Get the top 2 words for each topic
+            topic_name = " / ".join([term[0] for term in topic_terms])
+            topic_names.append(topic_name)
+        return topic_names
+
+        
     # Preprocess the titles
     df['preprocessed_titles'] = df['title'].apply(preprocess)
 
@@ -69,12 +78,14 @@ def main():
     corpus = [dictionary.doc2bow(title) for title in df['preprocessed_titles']]
 
     # Build the LDA model
-    num_topics = 5
+    num_topics = 10
+
+    # Run LDA model and generate topic names
     lda_model = gensim.models.LdaMulticore(corpus, num_topics=num_topics, id2word=dictionary, passes=2, workers=2)
+    topic_names = generate_topic_names(lda_model, num_topics)
 
-    # Print the top 5 topics
-    for idx, topic in lda_model.print_topics(-1):
-        print(f"Topic: {idx + 1} \nWords: {topic}\n")
-
+    # Print topics with their names
+    for i, topic in enumerate(lda_model.print_topics(num_words=5)):
+        print(f"Topic {i + 1} ({topic_names[i]}): {topic}")
 if __name__ == '__main__':
     main()
